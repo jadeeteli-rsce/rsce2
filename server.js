@@ -72,8 +72,10 @@ async function scrapeWebsite() {
       console.error('Error al extraer ' + url + ': ' + error.message);
     }
   }
+// Only update if we actually got content
+if (allContent.length > 0) {
   websiteContent = allContent;
-  console.log('Longitud del contenido extraido: ' + websiteContent.length + ' caracteres');
+}  console.log('Longitud del contenido extraido: ' + websiteContent.length + ' caracteres');
   return websiteContent;
 }
 

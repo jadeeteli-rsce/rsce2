@@ -307,8 +307,12 @@ const messageEl = document.createElement('div');
 messageEl.className = `message ${className}`;
 const contentEl = document.createElement('div');
 contentEl.className = 'message-content';
-contentEl.innerHTML = text.replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
-messageEl.appendChild(contentEl);
+let formatted = text
+  .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+  .replace(/\*(.*?)\*/g, '<em>$1</em>')
+  .replace(/\n/g, '<br>')
+  .replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+contentEl.innerHTML = formatted;messageEl.appendChild(contentEl);
 messagesDiv.appendChild(messageEl);
 messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }

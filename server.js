@@ -155,9 +155,6 @@ app.post('/api/chat', async (req, res) => {
       'Pregunta del usuario: ' + userMessage;
 
     let reply = (await model.generateContent(prompt)).response.text();
-    reply = reply.replace(/\*\*(.*?)\*\*/g, '$1');
-    reply = reply.replace(/\*(.*?)\*/g, '$1');
-    reply = reply.replace(/#{1,6}\s/g, '');
     res.json({ reply, confidence: 'high', source: 'basado-en-web' });
   } catch (error) {
     console.error('Error al llamar a Gemini:', error.message);

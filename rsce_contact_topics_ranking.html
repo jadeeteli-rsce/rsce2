@@ -1,0 +1,70 @@
+
+<div style="padding: 1rem 0;">
+  <div style="display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 16px; font-size: 12px; color: var(--color-text-secondary);">
+    <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#185FA5;"></span>Top topics</span>
+    <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#9FE1CB;"></span>Other topics</span>
+  </div>
+  <div style="position:relative;width:100%;height:560px;">
+    <canvas id="topicsChart" role="img" aria-label="Horizontal bar chart ranking contact form topics by frequency. Pedigrí/LOE is the most frequent with 805 messages.">Top topics: Pedigrí/LOE 805, Inscripción de camada 658, Exposiciones/concursos 429, Información criadores 221, Transferencia de propiedad 175, Test de ADN 168, Solicitud de afijo 141, Pedigrí de exportación 138, Registro/DNI duplicado 119, Agility/deporte canino 109.</canvas>
+  </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const labels = [
+  'Pedigrí / LOE',
+  'Inscripción de camada',
+  'Exposiciones / concursos / títulos',
+  'Información sobre criadores',
+  'Transferencia de propiedad',
+  'Test de ADN',
+  'Solicitud / gestión de afijo',
+  'Pedigrí de exportación',
+  'Registro de usuario / DNI duplicado',
+  'Agility / deporte canino',
+  'Pago / factura / reembolso',
+  'Problemas de acceso / contraseña',
+  'Socios / cuotas',
+  'Información sobre razas',
+  'Delegación de voto / asamblea',
+  'Identificación / microchip'
+];
+const values = [805, 658, 429, 221, 175, 168, 141, 138, 119, 109, 76, 69, 67, 67, 20, 16];
+const colors = values.map((v, i) => i < 5 ? '#185FA5' : '#9FE1CB');
+
+new Chart(document.getElementById('topicsChart'), {
+  type: 'bar',
+  data: {
+    labels,
+    datasets: [{
+      label: 'Mensajes',
+      data: values,
+      backgroundColor: colors,
+      borderRadius: 4,
+      borderSkipped: false
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: (ctx) => ` ${ctx.raw} mensajes (${((ctx.raw/4126)*100).toFixed(1)}%)`
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { color: 'rgba(128,128,128,0.15)' },
+        ticks: { color: '#888', font: { size: 12 } }
+      },
+      y: {
+        grid: { display: false },
+        ticks: { color: '#444', font: { size: 12 } }
+      }
+    }
+  }
+});
+</script>

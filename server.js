@@ -133,6 +133,7 @@ app.post('/api/chat', async (req, res) => {
   if (!userMessage || userMessage.trim() === '') {
     return res.json({ reply: 'Por favor, escribe una pregunta!', confidence: 'none' });
   }
+  console.log('Chunks available:', chunks.length);
   if (chunks.length === 0) {
     return res.json({
       reply: 'Todavia estoy cargando la informacion. Por favor, intentalo de nuevo en un momento.',

@@ -17,7 +17,7 @@ app.use(express.static(path.join(__dirname)));
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
-let websiteContent = '';
+let chunks = [];
 const CACHE_FILE = path.join(__dirname, 'website-cache.txt');
 
 const RSCE_URLS = [
@@ -51,9 +51,37 @@ const RSCE_URLS = [
   'https://www.rsce.es/faq/',
 ];
 
+// Split a page into smaller chunks of ~1000 chars
+function chunkText(url, title, text) {
+  const size = 1000;
+  const results = [];
+  for (let i = 0; i < text.length; i += size) {
+    results.push({
+      url,
+      title,
+      content: text.substring(i, i + size)
+    });
+  }
+  return results;
+}
+
+// Find the most relevant chunks for a question using keyword matching
+function getRelevantChunks(question, allChunks, topN = 5) {
+  const words = question.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+  const scored = allChunks.map(chunk => {
+    const text = chunk.content.toLowerCase();
+    const score = words.reduce((acc, word) => acc + (text.includes(word) ? 1 : 0), 0);
+    return { ...chunk, score };
+  });
+  return scored
+    .filter(c => c.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, topN);
+}
+
 async function scrapeWebsite() {
   console.log('Iniciando extraccion del sitio web de la RSCE...');
-  let allContent = '';
+  const newChunks = [];
   for (const url of RSCE_URLS) {
     try {
       console.log('Extrayendo: ' + url);
@@ -64,25 +92,27 @@ async function scrapeWebsite() {
       const $ = cheerio.load(response.data);
       const title = $('title').text();
       const mainContent = $('main').text() || $('body').text();
-      const description = $('meta[name="description"]').attr('content');
-      allContent += '\n\n--- Pagina: ' + title + ' ---\n';
-      allContent += 'Descripcion: ' + description + '\n';
-      allContent += mainContent.substring(0, 15000);
+      const pageChunks = chunkText(url, title, mainContent.substring(0, 20000));
+      newChunks.push(...pageChunks);
     } catch (error) {
       console.error('Error al extraer ' + url + ': ' + error.message);
     }
   }
-// Only update if we actually got content
-if (allContent.length > 0) {
-  websiteContent = allContent;
-}  console.log('Longitud del contenido extraido: ' + websiteContent.length + ' caracteres');
-  return websiteContent;
+  if (newChunks.length > 0) {
+    chunks = newChunks;
+  }
+  console.log('Total chunks: ' + chunks.length);
+  return chunks;
 }
 
 function loadCache() {
   if (fs.existsSync(CACHE_FILE)) {
-    websiteContent = fs.readFileSync(CACHE_FILE, 'utf-8');
-    console.log('Cache cargado: ' + websiteContent.length + ' caracteres');
+    try {
+      chunks = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf-8'));
+      console.log('Cache cargado: ' + chunks.length + ' chunks');
+    } catch (e) {
+      console.log('Cache invalido, esperando scrape...');
+    }
   } else {
     console.log('No hay cache, esperando primer scrape...');
   }
@@ -90,7 +120,7 @@ function loadCache() {
 
 async function scrapeAndCache() {
   await scrapeWebsite();
-  fs.writeFileSync(CACHE_FILE, websiteContent, 'utf-8');
+  fs.writeFileSync(CACHE_FILE, JSON.stringify(chunks), 'utf-8');
   console.log('Cache guardado en website-cache.txt');
 }
 
@@ -103,14 +133,27 @@ app.post('/api/chat', async (req, res) => {
   if (!userMessage || userMessage.trim() === '') {
     return res.json({ reply: 'Por favor, escribe una pregunta!', confidence: 'none' });
   }
-  if (!websiteContent) {
+  if (chunks.length === 0) {
     return res.json({
       reply: 'Todavia estoy cargando la informacion. Por favor, intentalo de nuevo en un momento.',
       confidence: 'low'
     });
   }
   try {
-    let reply = (await model.generateContent('Eres un asistente virtual de la RSCE (Real Sociedad Canina de Espana).\nResponde SIEMPRE en espanol.\nBasandote UNICAMENTE en el contenido del sitio web proporcionado, responde de forma precisa y detallada.\nSi la informacion no esta disponible, sugiere contactar con info@rsce.es\n\nContenido del sitio web:\n' + websiteContent + '\n\nPregunta del usuario: ' + userMessage)).response.text();
+    // Only send the relevant chunks, not the whole site
+    const relevant = getRelevantChunks(userMessage, chunks);
+    const context = relevant.length > 0
+      ? relevant.map(c => '--- ' + c.title + ' (' + c.url + ') ---\n' + c.content).join('\n\n')
+      : chunks.slice(0, 5).map(c => c.content).join('\n\n');
+
+    const prompt = 'Eres un asistente virtual de la RSCE (Real Sociedad Canina de Espana).\n' +
+      'Responde SIEMPRE en espanol.\n' +
+      'Basandote UNICAMENTE en el contenido proporcionado, responde de forma precisa y detallada.\n' +
+      'Si la informacion no esta disponible, sugiere contactar con info@rsce.es\n\n' +
+      'Contenido relevante:\n' + context + '\n\n' +
+      'Pregunta del usuario: ' + userMessage;
+
+    let reply = (await model.generateContent(prompt)).response.text();
     reply = reply.replace(/\*\*(.*?)\*\*/g, '$1');
     reply = reply.replace(/\*(.*?)\*/g, '$1');
     reply = reply.replace(/#{1,6}\s/g, '');
@@ -128,7 +171,7 @@ app.post('/api/chat', async (req, res) => {
 app.post('/api/rescrape', async (req, res) => {
   try {
     await scrapeAndCache();
-    res.json({ message: 'Contenido del sitio web actualizado correctamente' });
+    res.json({ message: 'Contenido actualizado. Chunks: ' + chunks.length });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -137,8 +180,7 @@ app.post('/api/rescrape', async (req, res) => {
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'activo',
-    contenidoCargado: websiteContent.length > 0,
-    tamanoContenido: websiteContent.length,
+    chunksLoaded: chunks.length,
     proveedorIA: 'Google Gemini (gemini-2.5-flash)'
   });
 });

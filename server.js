@@ -148,9 +148,10 @@ app.post('/api/chat', async (req, res) => {
       : chunks.slice(0, 5).map(c => c.content).join('\n\n');
 
     const prompt = 'Eres un asistente virtual de la RSCE (Real Sociedad Canina de Espana).\n' +
-      'Responde SIEMPRE en espanol.\n' +
-      'Basandote UNICAMENTE en el contenido proporcionado, responde de forma precisa y detallada.\n' +
-      'Si la informacion no esta disponible, sugiere contactar con info@rsce.es\n\n' +
+      'Responde SIEMPRE en espanol de forma natural y conversacional.\n' +
+      'Responde de forma precisa y detallada usando el contenido disponible.\n' +
+      'Si no tienes informacion suficiente, di simplemente que contacten con info@rsce.es\n' +
+      'IMPORTANTE: No menciones nunca "el contenido proporcionado" ni "segun la informacion". Responde directamente.\n\n' +
       'Contenido relevante:\n' + context + '\n\n' +
       'Pregunta del usuario: ' + userMessage;
 

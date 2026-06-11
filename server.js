@@ -129,33 +129,39 @@ scrapeAndCache().catch(err => console.error('Error en scrape inicial:', err));
 setInterval(scrapeAndCache, 24 * 60 * 60 * 1000);
 
 app.post('/api/chat', async (req, res) => {
-  const userMessage = req.body.message;
+  const { message: userMessage, history = [] } = req.body;
+
   if (!userMessage || userMessage.trim() === '') {
     return res.json({ reply: 'Por favor, escribe una pregunta!', confidence: 'none' });
   }
-  console.log('Chunks available:', chunks.length);
   if (chunks.length === 0) {
     return res.json({
       reply: 'Todavia estoy cargando la informacion. Por favor, intentalo de nuevo en un momento.',
       confidence: 'low'
     });
   }
+
   try {
-    // Only send the relevant chunks, not the whole site
     const relevant = getRelevantChunks(userMessage, chunks);
     const context = relevant.length > 0
       ? relevant.map(c => '--- ' + c.title + ' (' + c.url + ') ---\n' + c.content).join('\n\n')
       : chunks.slice(0, 5).map(c => c.content).join('\n\n');
 
-    const prompt = 'Eres un asistente virtual de la RSCE (Real Sociedad Canina de Espana).\n' +
+    const systemPrompt =
+      'Eres un asistente virtual de la RSCE (Real Sociedad Canina de Espana).\n' +
       'Responde SIEMPRE en espanol de forma natural y conversacional.\n' +
       'Responde de forma precisa y detallada usando el contenido disponible.\n' +
-      'Si no tienes informacion suficiente, di simplemente que contacten con info@rsce.es\n' +
       'IMPORTANTE: No menciones nunca "el contenido proporcionado" ni "segun la informacion". Responde directamente.\n\n' +
-      'Contenido relevante:\n' + context + '\n\n' +
-      'Pregunta del usuario: ' + userMessage;
+      'Contenido relevante de la web:\n' + context;
 
-    let reply = (await model.generateContent(prompt)).response.text();
+    const chat = model.startChat({
+      systemInstruction: systemPrompt,
+      history: history,  // historial previo de la conversación
+    });
+
+    const result = await chat.sendMessage(userMessage);
+    const reply = result.response.text();
+
     res.json({ reply, confidence: 'high', source: 'basado-en-web' });
   } catch (error) {
     console.error('Error al llamar a Gemini:', error.message);
@@ -165,31 +171,4 @@ app.post('/api/chat', async (req, res) => {
       error: error.message
     });
   }
-});
-
-app.post('/api/rescrape', async (req, res) => {
-  try {
-    await scrapeAndCache();
-    res.json({ message: 'Contenido actualizado. Chunks: ' + chunks.length });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'activo',
-    chunksLoaded: chunks.length,
-    proveedorIA: 'Google Gemini (gemini-2.5-flash)'
-  });
-});
-
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-app.listen(PORT, () => {
-  console.log('Chatbot RSCE ejecutandose en el puerto ' + PORT);
-  console.log('Proveedor de IA: Google Gemini (gemini-2.5-flash)');
-  console.log('Abre http://localhost:' + PORT + ' en tu navegador');
 });

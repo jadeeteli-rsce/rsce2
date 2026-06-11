@@ -290,8 +290,8 @@ body: JSON.stringify({ message, history: chatHistory })
 });
 const data = await response.json();
 removeTypingIndicator(typingEl);
-chatHistory.push({ role: 'user', content: message });
-chatHistory.push({ role: 'assistant', content: data.reply });
+chatHistory.push({ role: 'user', parts: [{ text: message }] });
+chatHistory.push({ role: 'model', parts: [{ text: data.reply }] });
 addMessage(data.reply, 'bot-message');
 } catch (error) {
 removeTypingIndicator(typingEl);

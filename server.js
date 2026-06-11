@@ -189,6 +189,10 @@ app.post('/api/chat', async (req, res) => {
     });
   }
 });
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index2.html'));
+});
+
 
 app.listen(PORT, () => {
   console.log('Chatbot RSCE ejecutandose en el puerto ' + PORT);

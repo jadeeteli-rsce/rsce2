@@ -154,28 +154,14 @@ app.post('/api/chat', async (req, res) => {
       'IMPORTANTE: No menciones nunca "el contenido proporcionado" ni "segun la informacion". Responde directamente.';
 
     const chat = model.startChat({
-      systemInstruction: systemPrompt,
-      history: history,
-    });
+  systemInstruction: { parts: [{ text: systemPrompt }] },
+  history: history,
+});
 
     const messageWithContext =
       'Contenido relevante de la web RSCE:\n' + context + '\n\nPregunta: ' + userMessage;
 
     const result = await chat.sendMessage(messageWithContext);
-    const reply = result.response.text();
-
-    res.json({ reply, confidence: 'high', source: 'basado-en-web' });
-  } catch (error) {
-    console.error('Error al llamar a Gemini:', error.message);
-    res.json({
-      reply: 'Ha ocurrido un error. Por favor, contactanos en info@rsce.es',
-      confidence: 'low',
-      error: error.message
-    });
-  }
-});
-
-    const result = await chat.sendMessage(userMessage);
     const reply = result.response.text();
 
     res.json({ reply, confidence: 'high', source: 'basado-en-web' });

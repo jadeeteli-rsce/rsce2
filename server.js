@@ -172,3 +172,9 @@ app.post('/api/chat', async (req, res) => {
     });
   }
 });
+
+app.listen(PORT, () => {
+  console.log('Chatbot RSCE ejecutandose en el puerto ' + PORT);
+  console.log('Proveedor de IA: Google Gemini (gemini-2.5-flash)');
+  console.log('Abre http://localhost:' + PORT + ' en tu navegador');
+});

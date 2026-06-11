@@ -220,6 +220,7 @@ display: none;
  
 #chat-toggle-btn { position: relative; }
 #chat-bubble {
+  display: none;
   background: #1a3a5c;
   color: white;
   padding: 8px 14px;
@@ -272,7 +273,10 @@ let greeted = false;
  
 function toggleChat() {
 isOpen = !isOpen;
-document.getElementById('chat-bubble').style.display = 'none';
+if (isOpen) {
+  document.getElementById('chat-bubble').style.display = 'none';
+}
+
 const container = document.getElementById('chatbot-container');
 const dot = document.getElementById('notification-dot');
  
@@ -358,7 +362,13 @@ if (element && element.parentNode) element.parentNode.removeChild(element);
 document.getElementById('userInput').addEventListener('keypress', (e) => {
 if (e.key === 'Enter' && !isWaitingForResponse) sendMessage();
 });
- 
+
+setTimeout(() => {
+  if (!isOpen) {
+    document.getElementById('chat-bubble').style.display = 'flex';
+  }
+}, 2000);
+
 setTimeout(() => {
 if (!isOpen) {
 document.getElementById('notification-dot').style.display = 'block';

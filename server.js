@@ -151,13 +151,29 @@ app.post('/api/chat', async (req, res) => {
       'Eres un asistente virtual de la RSCE (Real Sociedad Canina de Espana).\n' +
       'Responde SIEMPRE en espanol de forma natural y conversacional.\n' +
       'Responde de forma precisa y detallada usando el contenido disponible.\n' +
-      'IMPORTANTE: No menciones nunca "el contenido proporcionado" ni "segun la informacion". Responde directamente.\n\n' +
-      'Contenido relevante de la web:\n' + context;
+      'IMPORTANTE: No menciones nunca "el contenido proporcionado" ni "segun la informacion". Responde directamente.';
 
     const chat = model.startChat({
       systemInstruction: systemPrompt,
-      history: history,  // historial previo de la conversación
+      history: history,
     });
+
+    const messageWithContext =
+      'Contenido relevante de la web RSCE:\n' + context + '\n\nPregunta: ' + userMessage;
+
+    const result = await chat.sendMessage(messageWithContext);
+    const reply = result.response.text();
+
+    res.json({ reply, confidence: 'high', source: 'basado-en-web' });
+  } catch (error) {
+    console.error('Error al llamar a Gemini:', error.message);
+    res.json({
+      reply: 'Ha ocurrido un error. Por favor, contactanos en info@rsce.es',
+      confidence: 'low',
+      error: error.message
+    });
+  }
+});
 
     const result = await chat.sendMessage(userMessage);
     const reply = result.response.text();

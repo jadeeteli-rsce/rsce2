@@ -151,15 +151,30 @@ app.post('/api/chat', async (req, res) => {
       'Eres un asistente virtual de la RSCE (Real Sociedad Canina de Espana).\n' +
       'Responde SIEMPRE en espanol de forma natural y conversacional.\n' +
       'Responde de forma precisa y detallada usando el contenido disponible.\n' +
-      'IMPORTANTE: No menciones nunca "el contenido proporcionado" ni "segun la informacion". Responde directamente.';
+      'IMPORTANTE: No menciones nunca "el contenido proporcionado" ni "segun la informacion". Responde directamente.'   
+      'INFORMACION IMPORTANTE SOBRE PRUEBAS DE ADN:\n' +
+      '1. Accede al formulario de pre-registro en https://rsce.igecan.es/ y complétalo con tus datos y los de tu perro.\n' +
+      '2. Si no eres socio de la RSCE, realiza el pago correspondiente (solo se admiten pagos mediante el sistema de pre-registro).\n' +
+      '3. Tras el pre-registro, recibirás un correo electrónico con las instrucciones para comenzar el proceso.\n' +
+      '4. Después podrás elegir el laboratorio que prefieras. Contáctalos para que te informen de sus tarifas y te envíen los kits para la toma de muestras.\n' +
+      'Guía de ayuda completa: https://www.rsce.es/wp-content/uploads/2025/04/PROCEDIMIENTO_SOLICITUD_ADN.pdf\n';;
 
     const chat = model.startChat({
   systemInstruction: { parts: [{ text: systemPrompt }] },
   history: history,
 });
 
+    const adnInfo =
+  'PROCEDIMIENTO PRUEBAS DE ADN (usa esto si preguntan sobre ADN):\n' +
+  '1. Accede al pre-registro en https://rsce.igecan.es/ y complétalo con tus datos y los de tu perro.\n' +
+  '2. Si no eres socio, realiza el pago (solo se admiten pagos por pre-registro).\n' +
+  '3. Recibirás un correo con instrucciones para comenzar.\n' +
+  '4. Elige un laboratorio, contáctalos para tarifas y kits de muestras.\n' +
+  'Guía completa: https://www.rsce.es/wp-content/uploads/2025/04l/PROCEDIMIENTO_SOLICITUD_ADN.pdf\n\n';
+
     const messageWithContext =
-      'Contenido relevante de la web RSCE:\n' + context + '\n\nPregunta: ' + userMessage;
+  adnInfo +
+  'Contenido relevante de la web RSCE:\n' + context + '\n\nPregunta: ' + userMessage;
 
     const result = await chat.sendMessage(messageWithContext);
     const reply = result.response.text();
